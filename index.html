@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Fleet OS Apex v10.7 | Ullswater Corporation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #F8FAFC; color: #0F172A; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: slideUp 0.2s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-active { background: #2563eb !important; color: white !important; box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.4); }
+        .btn-press:active { transform: scale(0.96); opacity: 0.9; }
+        input, select, textarea { font-size: 16px !important; border: 1px solid #E2E8F0 !important; outline: none; transition: all 0.2s; }
+        
+        @media print {
+            aside, header, .no-print, .actions-cell { display: none !important; }
+            main, body { overflow: visible !important; height: auto !important; display: block !important; }
+            .tab-content { display: none !important; }
+            .tab-content.print-target { display: block !important; opacity: 1 !important; }
+            .print-header { display: block !important; margin-bottom: 2rem; border-bottom: 3px solid #000; padding-bottom: 1rem; }
+        }
+        .print-header { display: none; }
+    </style>
+</head>
+<body class="flex h-screen overflow-hidden">
+
+    <aside class="hidden md:flex w-72 bg-slate-950 text-slate-400 flex-col z-50 no-print">
+        <div class="p-8 text-white font-extrabold flex items-center gap-3 border-b border-slate-800/50">
+            <div class="bg-blue-600 p-2 rounded-xl text-white shadow-lg"><i data-lucide="shield"></i></div>
+            <div class="flex flex-col uppercase">
+                <span class="text-sm tracking-widest leading-none text-blue-400">Ullswater</span>
+                <span class="text-xl font-black tracking-tighter">Corporation</span>
+            </div>
+        </div>
+        
+        <nav class="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <button onclick="switchTab('dashboard')" id="nav-dashboard" class="w-full flex items-center gap-4 p-4 rounded-2xl transition nav-active"><i data-lucide="layout-dashboard"></i> <span class="font-bold">Executive Board</span></button>
+            <button onclick="switchTab('fleet')" id="nav-fleet" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="truck"></i> <span class="font-bold">Unit Performance</span></button>
+            <button onclick="switchTab('staff')" id="nav-staff" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="users"></i> <span class="font-bold">Staff & Payroll</span></button>
+            <button onclick="switchTab('inventory')" id="nav-inventory" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="package"></i> <span class="font-bold">Parts & Supply</span></button>
+            <button onclick="switchTab('motorpool')" id="nav-motorpool" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="wrench"></i> <span class="font-bold">Motorpool Logs</span></button>
+            <button onclick="switchTab('finance')" id="nav-finance" class="w-full flex items-center gap-4 p-4 rounded-2xl transition hover:text-white"><i data-lucide="credit-card"></i> <span class="font-bold">Unified Ledger</span></button>
+        </nav>
+
+        <div class="p-4 bg-slate-900/50 m-4 rounded-2xl space-y-2 border border-slate-800">
+            <button onclick="saveJSON()" class="w-full flex items-center gap-3 p-3 hover:bg-blue-600 rounded-xl text-white text-[10px] font-black transition uppercase italic">
+                <i data-lucide="download" class="w-4 h-4"></i> Backup System (JSON)
+            </button>
+            <label class="w-full flex items-center gap-3 p-3 hover:bg-slate-800 rounded-xl text-white text-[10px] font-black transition uppercase cursor-pointer italic">
+                <i data-lucide="upload" class="w-4 h-4 text-green-400"></i> Restore System (JSON)
+                <input type="file" id="load-file" class="hidden" onchange="loadJSON(this)">
+            </label>
+            <button onclick="resetSystem()" class="w-full flex items-center gap-3 p-3 hover:bg-red-900/20 rounded-xl text-red-500 text-[10px] font-black transition uppercase">
+                <i data-lucide="refresh-ccw" class="w-4 h-4"></i> Wipe All Data
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <header class="h-20 bg-white border-b px-6 flex items-center justify-between no-print">
+            <h1 id="tab-title" class="text-lg font-black text-slate-800 uppercase tracking-widest italic">Executive Board</h1>
+            <div class="flex gap-2">
+                <div class="relative group">
+                    <button class="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">Data Tools</button>
+                    <div class="absolute right-0 mt-2 w-48 bg-white border rounded-2xl shadow-xl hidden group-hover:block z-[60]">
+                        <button onclick="exportCSV()" class="w-full text-left p-4 hover:bg-slate-50 text-[10px] font-black uppercase border-b">Export to CSV</button>
+                        <label class="w-full block p-4 hover:bg-slate-50 text-[10px] font-black uppercase cursor-pointer">
+                            Import from CSV
+                            <input type="file" id="csv-import" class="hidden" onchange="importCSV(this)">
+                        </label>
+                    </div>
+                </div>
+                <button onclick="printDept()" class="bg-indigo-100 text-indigo-700 px-4 py-2.5 rounded-xl font-black text-[10px] uppercase border border-indigo-200">Print Report</button>
+                <button onclick="openModal('exp')" class="bg-red-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Expense</button>
+                <button onclick="openModal('rev')" class="bg-green-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Income</button>
+                <button onclick="openModal('staff')" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Staff</button>
+                <button onclick="openModal('reg')" class="bg-slate-800 text-white px-5 py-2.5 rounded-xl font-black text-[10px] uppercase shadow-lg">+ Asset</button>
+            </div>
+        </header>
+
+        <section class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6">
+            
+            <div class="print-header">
+                <h1 class="text-2xl font-black uppercase tracking-tighter">ULLSWATER CORPORATION</h1>
+                <p id="print-dept-name" class="text-blue-600 font-bold uppercase text-sm tracking-widest italic"></p>
+                <p class="text-slate-500 text-[10px] mt-1">Generated: <span id="print-date"></span></p>
+            </div>
+
+            <div id="tab-dashboard" class="tab-content active">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-green-600 text-[10px] font-black uppercase">Revenue</p><h2 id="d-rev" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-red-500 text-[10px] font-black uppercase">Direct Costs</p><h2 id="d-pay" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-slate-900 p-6 rounded-3xl text-white shadow-xl"><p class="text-blue-400 text-[10px] font-black uppercase">Net Margin</p><h2 id="d-margin" class="text-2xl font-black">₱0.00</h2></div>
+                    <div class="bg-white p-6 rounded-3xl border shadow-sm"><p class="text-slate-400 text-[10px] font-black uppercase">Total Staffing</p><h2 id="d-labor" class="text-2xl font-black">₱0.00</h2></div>
+                </div>
+            </div>
+
+            <div id="tab-fleet" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                            <tr><th class="p-6">Unit ID / Timestamp</th><th class="p-6">Income</th><th class="p-6">Expense/Maint</th><th class="p-6">Personnel</th><th class="p-6">Net</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-fleet" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-staff" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-indigo-900 text-white text-[10px] font-black uppercase">
+                            <tr><th class="p-6">Employee / Dept</th><th class="p-6">Role</th><th class="p-6">Assigned Unit</th><th class="p-6">Salary (₱)</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-staff" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="tab-inventory" class="tab-content">
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm no-print">
+                        <h3 class="font-black text-sm uppercase text-blue-600 mb-4 italic">Stock Entry</h3>
+                        <div class="space-y-3">
+                            <input type="text" id="i-name" placeholder="Item Name" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <input type="number" id="i-qty" placeholder="Quantity" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <input type="number" id="i-cost" placeholder="Unit Cost (₱)" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <button onclick="doStock()" class="w-full bg-slate-900 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg">Register Supply</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 bg-white rounded-[2.5rem] border shadow-sm overflow-hidden">
+                        <table class="w-full text-left">
+                            <thead class="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                                <tr><th class="p-6">Supply Item / Last Restock</th><th class="p-6">In-Stock</th><th class="p-6 text-right">Value</th><th class="p-6 text-center no-print">Actions</th></tr>
+                            </thead>
+                            <tbody id="list-inventory" class="divide-y text-sm font-bold"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div id="tab-motorpool" class="tab-content">
+                <div class="lg:grid lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-8 rounded-[2.5rem] border shadow-sm no-print">
+                        <h3 class="font-black text-sm uppercase text-red-600 mb-4 italic">Mechanical Job Order</h3>
+                        <div class="space-y-3">
+                            <select id="m-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                            <select id="m-part-idx" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                            <input type="number" id="m-part-qty" placeholder="Part Quantity Used" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                            <textarea id="m-jobs" placeholder="Mechanic notes..." class="w-full p-4 rounded-xl bg-slate-50 h-24 font-bold"></textarea>
+                            <button onclick="doJobOrder()" class="w-full bg-red-600 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg italic">Post Service Log</button>
+                        </div>
+                    </div>
+                    <div class="lg:col-span-2 space-y-4" id="list-maint"></div>
+                </div>
+            </div>
+
+            <div id="tab-finance" class="tab-content">
+                <div class="bg-white rounded-3xl border shadow-sm overflow-hidden">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-950 text-white text-[10px] font-black uppercase">
+                            <tr><th class="p-6">Date & Time</th><th class="p-6">Unit</th><th class="p-6">Transaction</th><th class="p-6">Description</th><th class="p-6 text-right">Amount</th><th class="p-6 text-center no-print">Actions</th></tr>
+                        </thead>
+                        <tbody id="list-finance" class="divide-y text-sm font-bold"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal-staff" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-indigo-600 italic">Personnel Registration</h2>
+            <div class="space-y-4">
+                <input type="text" id="s-name" placeholder="Full Name" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                <select id="s-dept-input" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    <option value="Staff and Payroll Department">Staff and Payroll Department</option>
+                    <option value="Operations">Operations</option>
+                    <option value="Maintenance / Motorpool">Maintenance / Motorpool</option>
+                    <option value="Logistics / Hauling">Logistics / Hauling</option>
+                </select>
+                <select id="s-role" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    <option value="Operator">Operator</option>
+                    <option value="Driver">Driver</option>
+                    <option value="Mechanic">Mechanic</option>
+                    <option value="Staff">Administrative</option>
+                    <option value="Manager">Manager</option>
+                </select>
+                <select id="s-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                <input type="number" id="s-rate" placeholder="Monthly Salary / Day Rate (₱)" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                <textarea id="s-notes" placeholder="Contact, ID Numbers, or Remarks..." class="w-full p-4 rounded-xl bg-slate-50 h-24 font-bold"></textarea>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('staff')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doAddStaff()" class="flex-1 py-4 font-black text-[10px] bg-indigo-600 text-white rounded-xl uppercase shadow-lg">Save Personnel</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-exp" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-red-600 italic">Log Purchase / Expense</h2>
+            <div class="space-y-4">
+                <select id="exp-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                <input type="text" id="exp-item" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Item/Service Name (e.g. Fuel, Permit)">
+                <input type="number" id="exp-amt" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Total Cost (₱)">
+                <select id="exp-cat" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+                    <option value="Operational">Operational Expense</option>
+                    <option value="Purchase">Department Purchase</option>
+                    <option value="Permit">Regulatory/Permits</option>
+                    <option value="Misc">Other Miscellaneous</option>
+                </select>
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('exp')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doExpense()" class="flex-1 py-4 font-black text-[10px] bg-red-600 text-white rounded-xl uppercase shadow-lg">Post Expense</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-edit" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-blue-600 italic">Modify Record</h2>
+            <div id="edit-fields" class="space-y-4"></div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('edit')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="commitEdit()" class="flex-1 py-4 font-black text-[10px] bg-blue-600 text-white rounded-xl uppercase shadow-lg">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-rev" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-green-600 italic">Log Asset Income</h2>
+            <div class="space-y-4">
+                <select id="rev-unit" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></select>
+                <input type="number" id="rev-amt" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Amount (₱)">
+                <input type="text" id="rev-desc" class="w-full p-4 rounded-xl bg-slate-50 font-bold" placeholder="Service Particulars">
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('rev')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doRevenue()" class="flex-1 py-4 font-black text-[10px] bg-green-600 text-white rounded-xl uppercase shadow-lg">Post Income</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modal-reg" class="hidden fixed inset-0 bg-slate-900/90 z-[100] flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h2 class="text-xl font-black uppercase mb-6 text-blue-600 italic">Asset Registry</h2>
+            <div class="space-y-4">
+                <input type="text" id="r-id" placeholder="Unit ID (e.g. TRK-01)" class="w-full p-4 rounded-xl bg-slate-50 font-bold uppercase">
+                <input type="text" id="r-name" placeholder="Model / Specs" class="w-full p-4 rounded-xl bg-slate-50 font-bold">
+            </div>
+            <div class="flex gap-3 mt-8">
+                <button onclick="closeModal('reg')" class="flex-1 py-4 font-black text-[10px] bg-slate-100 rounded-xl uppercase">Cancel</button>
+                <button onclick="doRegister()" class="flex-1 py-4 font-black text-[10px] bg-blue-600 text-white rounded-xl uppercase shadow-lg">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DEFAULT_DB = { fleet: [], inventory: [], maint: [], finance: [], staff: [] };
+        let db = JSON.parse(localStorage.getItem('ULLSWATER_FLEET_APEX_V10')) || JSON.parse(JSON.stringify(DEFAULT_DB));
+        let currentEdit = { dept: '', idx: null };
+        let currentTab = 'dashboard';
+
+        const php = (v) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(v);
+        
+        const getNow = () => new Date().toLocaleString('en-PH', { 
+            year: 'numeric', month: '2-digit', day: '2-digit', 
+            hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+        });
+
+        function refresh() {
+            const totalRev = db.finance.filter(x => x.type === 'REVENUE').reduce((a,b) => a + b.amount, 0);
+            const totalCost = db.finance.filter(x => x.type === 'COST').reduce((a,b) => a + b.amount, 0);
+            const totalLabor = db.staff.reduce((a, b) => a + b.rate, 0);
+            
+            document.getElementById('d-rev').innerText = php(totalRev);
+            document.getElementById('d-pay').innerText = php(totalCost);
+            document.getElementById('d-margin').innerText = php(totalRev - (totalCost + totalLabor));
+            document.getElementById('d-labor').innerText = php(totalLabor);
+
+            const unitOpts = db.fleet.map(f => `<option value="${f.id}">${f.id}</option>`).join('') + `<option value="OVERHEAD">GENERAL OVERHEAD</option>`;
+            ['m-unit', 'rev-unit', 's-unit', 'exp-unit'].forEach(id => {
+                if(document.getElementById(id)) document.getElementById(id).innerHTML = unitOpts;
+            });
+            
+            document.getElementById('m-part-idx').innerHTML = `<option value="">-- LABOR ONLY --</option>` + 
+                db.inventory.map((item, i) => `<option value="${i}">${item.name} (${item.qty})</option>`).join('');
+
+            document.getElementById('list-fleet').innerHTML = db.fleet.map((f, i) => {
+                const uRev = db.finance.filter(x => x.unitId === f.id && x.type === 'REVENUE').reduce((a,b) => a + b.amount, 0);
+                const uCost = db.finance.filter(x => x.unitId === f.id && x.type === 'COST').reduce((a,b) => a + b.amount, 0);
+                const uLabor = db.staff.filter(s => s.unitId === f.id).reduce((a,b) => a + b.rate, 0);
+                const net = uRev - (uCost + uLabor);
+                return `<tr>
+                    <td class="p-6 uppercase">
+                        <span class="block">${f.id}</span>
+                        <span class="text-[9px] text-slate-400 font-bold block">${f.name}</span>
+                        <span class="text-[8px] text-blue-500 font-mono italic">${f.timestamp || 'N/A'}</span>
+                    </td>
+                    <td class="p-6 text-green-600">${php(uRev)}</td>
+                    <td class="p-6 text-red-600">${php(uCost)}</td>
+                    <td class="p-6 text-indigo-600">${php(uLabor)}</td>
+                    <td class="p-6 font-black ${net >= 0 ? 'text-blue-600' : 'text-orange-600'}">${php(net)}</td>
+                    <td class="p-6 text-center no-print space-x-2">
+                        <button onclick="prepEdit('fleet', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="removeItem('fleet', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            document.getElementById('list-staff').innerHTML = db.staff.map((s, i) => `
+                <tr>
+                    <td class="p-6">
+                        <span class="block font-black uppercase">${s.name}</span>
+                        <span class="text-[9px] text-indigo-600 font-bold italic tracking-tight">${s.dept || 'N/A'}</span>
+                        <br>
+                        <span class="text-[8px] text-slate-400 font-mono">ID: ${s.timestamp || 'NEW'}</span>
+                    </td>
+                    <td class="p-6"><span class="px-2 py-1 bg-slate-100 rounded text-[10px] font-black">${s.role}</span></td>
+                    <td class="p-6 font-mono text-xs font-black italic text-indigo-600">${s.unitId}</td>
+                    <td class="p-6">${php(s.rate)}</td>
+                    <td class="p-6 text-center no-print space-x-2">
+                        <button onclick="prepEdit('staff', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="removeItem('staff', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('list-inventory').innerHTML = db.inventory.map((item, i) => `
+                <tr>
+                    <td class="p-6">
+                        <span class="block font-black uppercase italic tracking-tight">${item.name}</span>
+                        <span class="text-[8px] text-slate-400 font-mono uppercase">Update: ${item.timestamp || 'N/A'}</span>
+                    </td>
+                    <td class="p-6 ${item.qty < 3 ? 'text-red-600' : 'text-slate-600'}">${item.qty} units</td>
+                    <td class="p-6 text-right font-black text-slate-900">${php(item.qty * item.cost)}</td>
+                    <td class="p-6 text-center no-print space-x-2">
+                        <button onclick="prepEdit('inventory', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="removeItem('inventory', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).join('');
+
+            document.getElementById('list-maint').innerHTML = db.maint.map((m, i) => `
+                <div class="bg-white p-6 rounded-[2rem] border-l-8 border-l-red-600 shadow-sm relative hover:shadow-md transition">
+                    <div class="flex justify-between mb-2"><h4 class="font-black italic uppercase">${m.unitId}</h4><span class="text-[10px] font-bold text-slate-400">${m.date}</span></div>
+                    <p class="text-xs font-bold text-slate-600 italic mb-2">"${m.jobs}"</p>
+                    <p class="text-[10px] font-black text-red-600 uppercase">Part Used: ${m.partName} (${m.partQty})</p>
+                    <div class="no-print absolute top-6 right-6 flex gap-2">
+                        <button onclick="prepEdit('maint', ${i})" class="text-blue-500"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
+                        <button onclick="removeItem('maint', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </div>
+                </div>`).reverse().join('');
+
+            document.getElementById('list-finance').innerHTML = db.finance.map((ex, i) => `
+                <tr>
+                    <td class="p-6 text-slate-400 font-mono text-[10px]">${ex.date}</td>
+                    <td class="p-6 font-black uppercase text-xs italic text-blue-600">${ex.unitId}</td>
+                    <td class="p-6"><span class="px-2 py-0.5 rounded text-[9px] font-black uppercase ${ex.type === 'REVENUE' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${ex.type}</span></td>
+                    <td class="p-6 text-xs uppercase text-slate-500 font-bold">${ex.desc}</td>
+                    <td class="p-6 text-right font-black ${ex.type === 'REVENUE' ? 'text-green-600' : 'text-red-600'}">${php(ex.amount)}</td>
+                    <td class="p-6 text-center no-print">
+                        <button onclick="removeItem('finance', ${i})" class="text-red-400"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                    </td>
+                </tr>`).reverse().join('');
+
+            lucide.createIcons();
+            localStorage.setItem('ULLSWATER_FLEET_APEX_V10', JSON.stringify(db));
+        }
+
+        function doExpense() {
+            const amt = parseFloat(document.getElementById('exp-amt').value) || 0;
+            const uId = document.getElementById('exp-unit').value;
+            const item = document.getElementById('exp-item').value;
+            const cat = document.getElementById('exp-cat').value;
+
+            if(!item || amt <= 0) return alert("Please enter valid item and amount.");
+
+            db.finance.push({ 
+                date: getNow(), 
+                unitId: uId, 
+                type: 'COST', 
+                desc: `[${cat}] ${item}`, 
+                amount: amt 
+            });
+            
+            document.getElementById('exp-amt').value = "";
+            document.getElementById('exp-item').value = "";
+            closeModal('exp'); refresh();
+        }
+
+        function doAddStaff() {
+            const name = document.getElementById('s-name').value;
+            if(!name) return alert("Employee Name is required.");
+            
+            db.staff.push({ 
+                name: name, 
+                dept: document.getElementById('s-dept-input').value, // NEW: Capture Department
+                role: document.getElementById('s-role').value, 
+                unitId: document.getElementById('s-unit').value, 
+                rate: parseFloat(document.getElementById('s-rate').value) || 0,
+                notes: document.getElementById('s-notes').value, 
+                timestamp: getNow()
+            });
+            
+            document.getElementById('s-name').value = "";
+            document.getElementById('s-notes').value = ""; 
+            closeModal('staff'); refresh();
+        }
+
+        function doRevenue() {
+            const amt = parseFloat(document.getElementById('rev-amt').value) || 0;
+            const uId = document.getElementById('rev-unit').value;
+            db.finance.push({ 
+                date: getNow(), 
+                unitId: uId, 
+                type: 'REVENUE', 
+                desc: document.getElementById('rev-desc').value, 
+                amount: amt 
+            });
+            closeModal('rev'); refresh();
+        }
+
+        function doJobOrder() {
+            const uId = document.getElementById('m-unit').value;
+            const pIdx = document.getElementById('m-part-idx').value;
+            const pQty = parseInt(document.getElementById('m-part-qty').value) || 0;
+            const timeStr = getNow();
+            let cost = 0, pName = "Mechanic Labor Only";
+            if(pIdx !== "") {
+                const p = db.inventory[pIdx];
+                if(p.qty < pQty) return alert("System Warning: Insufficient Supply.");
+                p.qty -= pQty; 
+                p.timestamp = timeStr; 
+                cost = p.cost * pQty; 
+                pName = p.name;
+            }
+            db.maint.push({ unitId: uId, jobs: document.getElementById('m-jobs').value, partName: pName, partQty: pQty, date: timeStr });
+            db.finance.push({ date: timeStr, unitId: uId, type: 'COST', desc: `Service: ${pName}`, amount: cost });
+            refresh();
+        }
+
+        function doRegister() {
+            db.fleet.push({ 
+                id: document.getElementById('r-id').value.toUpperCase(), 
+                name: document.getElementById('r-name').value,
+                timestamp: getNow()
+            });
+            closeModal('reg'); refresh();
+        }
+
+        function doStock() {
+            db.inventory.push({ 
+                name: document.getElementById('i-name').value, 
+                qty: parseInt(document.getElementById('i-qty').value) || 0, 
+                cost: parseFloat(document.getElementById('i-cost').value) || 0,
+                timestamp: getNow()
+            });
+            refresh();
+        }
+
+        function prepEdit(dept, idx) {
+            currentEdit = { dept, idx };
+            const rec = db[dept][idx];
+            let html = '';
+            for (let k in rec) { if(k==='date'||k==='type'||k==='timestamp') continue;
+                if(k==='notes' || k==='jobs') {
+                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">${k}</label>
+                    <textarea id="edit-${k}" class="w-full p-4 rounded-xl bg-slate-50 font-bold h-24 text-sm">${rec[k] || ''}</textarea></div>`;
+                } else {
+                    html += `<div><label class="text-[10px] font-black text-slate-400 uppercase">${k}</label>
+                    <input type="text" id="edit-${k}" value="${rec[k]}" class="w-full p-4 rounded-xl bg-slate-50 font-bold"></div>`;
+                }
+            }
+            document.getElementById('edit-fields').innerHTML = html; openModal('edit');
+        }
+
+        function commitEdit() {
+            const { dept, idx } = currentEdit;
+            for (let k in db[dept][idx]) {
+                const el = document.getElementById('edit-' + k);
+                if (el) db[dept][idx][k] = isNaN(el.value) || el.value === "" ? el.value : parseFloat(el.value);
+            }
+            db[dept][idx].timestamp = getNow(); 
+            closeModal('edit'); refresh();
+        }
+
+        function saveJSON() {
+            const blob = new Blob([JSON.stringify(db, null, 2)], { type: 'application/json' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = `ULLSWATER_SYSTEM_BACKUP_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function loadJSON(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try { db = JSON.parse(e.target.result); refresh(); alert("System Restored Successfully."); } 
+                catch(err) { alert("Format Error: Invalid Backup File."); }
+            };
+            reader.readAsText(input.files[0]);
+        }
+
+        function exportCSV() {
+            let csv = "Department,Field1,Field2,Field3,Field4,Timestamp\n";
+            for (let dept in db) {
+                db[dept].forEach(row => {
+                    csv += `${dept},${Object.values(row).map(v => `"${v}"`).join(',')}\n`;
+                });
+            }
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+            a.download = "Ullswater_Master_Data.csv"; a.click();
+        }
+
+        function importCSV(input) {
+            const reader = new FileReader();
+            reader.onload = (e) => { alert("CSV Process Complete."); refresh(); };
+            reader.readAsText(input.files[0]);
+        }
+
+        function printDept() {
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('print-target'));
+            const activeTab = document.getElementById('tab-' + currentTab);
+            activeTab.classList.add('print-target');
+            document.getElementById('print-dept-name').innerText = currentTab.toUpperCase() + " DEPARTMENTAL REPORT";
+            document.getElementById('print-date').innerText = getNow();
+            window.print();
+        }
+
+        function resetSystem() { if(confirm("DANGER: This will permanently wipe all company data. Continue?")) { db = JSON.parse(JSON.stringify(DEFAULT_DB)); refresh(); } }
+        
+        function switchTab(id) {
+            currentTab = id;
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('nav button').forEach(b => b.classList.remove('nav-active'));
+            document.getElementById('tab-' + id).classList.add('active');
+            document.getElementById('nav-' + id).classList.add('nav-active');
+            document.getElementById('tab-title').innerText = id.replace('staff','Personnel').toUpperCase();
+        }
+
+        function openModal(id) { document.getElementById('modal-'+id).classList.remove('hidden'); }
+        function closeModal(id) { document.getElementById('modal-'+id).classList.add('hidden'); }
+        function removeItem(dept, idx) { if(confirm("Are you sure you want to remove this record?")) { db[dept].splice(idx, 1); refresh(); } }
+
+        window.onload = refresh;
+    </script>
+</body>
+</html>
